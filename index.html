@@ -11,7 +11,6 @@
 
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-
 <script src="https://unpkg.com/@babel/standalone@7.23.9/babel.min.js"></script>
 
 <style>
@@ -30,7 +29,7 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: #030712; color:
 // ==========================================
 // DÁN ĐƯỜNG LINK WEB APP CỦA BẠN VÀO ĐÂY
 // ==========================================
-const API_URL = "https://script.google.com/macros/s/AKfycbyfElu762bowwlSMwB2opPi1YALh59HQk9gZ90E55n1en56mtb402oLT0590MBVN7ye/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyVERzEfEK7t_Hp6PpWZYodTN-o7t4omX6W69p2Hn7URj71agiiKgvs_b954aiNMfn_/exec";
 </script>
 </head>
 <body>
@@ -95,11 +94,8 @@ const ExamForm = ({ initialData, onSave, onCancel }) => {
     const [startTime, setStartTime] = useState(initialData?.questions?.start_time || '');
     const [endTime, setEndTime] = useState(initialData?.questions?.end_time || '');
     
-    // Lưu link cũ nếu có
     const [fileLink, setFileLink] = useState(initialData?.questions?.file_link || '');
     const [explainLink, setExplainLink] = useState(initialData?.questions?.explain_link || '');
-    
-    // Trạng thái lưu file mới tải lên
     const [uploadFile, setUploadFile] = useState(null);
 
     const [ansP1, setAnsP1] = useState(initialData?.answers?.p1 || {});
@@ -111,7 +107,6 @@ const ExamForm = ({ initialData, onSave, onCancel }) => {
         if (examType === 'fixed') { setNumP1(12); setNumP2(4); setNumP3(6); }
     }, [examType]);
 
-    // Xử lý khi chọn file PDF
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -142,7 +137,7 @@ const ExamForm = ({ initialData, onSave, onCancel }) => {
                 file_link: fileLink, explain_link: explainLink
             },
             answers: { p1: ansP1, p2: ansP2, p3: ansP3 },
-            fileData: uploadFile // Gửi file mã hóa base64 lên server
+            fileData: uploadFile 
         };
 
         await onSave(payload);
@@ -212,7 +207,6 @@ const ExamForm = ({ initialData, onSave, onCancel }) => {
                             <input type="datetime-local" value={endTime} onChange={e => setEndTime(e.target.value)} className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-white outline-none focus:border-amber-500 text-xs font-bold" />
                         </div>
                         
-                        {/* Khu vực Upload PDF kiểu cũ */}
                         <div className="pt-3 border-t border-slate-800/80 border-dashed">
                             <label className="block text-purple-400 font-bold text-xs mb-2 uppercase flex items-center gap-1"><Icon name="upload-cloud" size={13}/> Tải file PDF Đề Thi Lên</label>
                             <input type="file" accept=".pdf" onChange={handleFileChange} className="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-purple-600 file:text-white hover:file:bg-purple-500 cursor-pointer"/>
@@ -533,6 +527,10 @@ const App = () => {
     const [view, setView] = useState('auth');
     const [data, setData] = useState({ exams: [], students: {}, history: [] });
 
+    // Khai báo state an toàn cho Form Login
+    const [adminUser, setAdminUser] = useState('');
+    const [adminPass, setAdminPass] = useState('');
+
     const fetchData = async () => {
         try {
             const res = await fetch(`${API_URL}?action=get_all`);
@@ -545,8 +543,12 @@ const App = () => {
 
     const handleLogin = (e) => {
         e.preventDefault();
-        if (e.target.u.value === 'Minhphat' && e.target.p.value === '12345') { setView('dashboard'); } 
-        else { alert("Truy cập thất bại! Sai thông tin Admin."); }
+        // Kiểm tra tài khoản bằng state thay vì e.target
+        if (adminUser === 'Minhphat' && adminPass === '12345') { 
+            setView('dashboard'); 
+        } else { 
+            alert("Truy cập thất bại! Sai thông tin Admin."); 
+        }
     };
 
     if (view === 'auth') return (
@@ -562,11 +564,11 @@ const App = () => {
                 <form onSubmit={handleLogin} className="space-y-4">
                     <div>
                         <label className="block text-[10px] font-extrabold text-slate-400 mb-2 uppercase tracking-wider">Mã định danh quản trị</label>
-                        <input name="u" required className="w-full p-3.5 bg-slate-950/80 border border-slate-800 focus:border-indigo-500 rounded-xl outline-none text-white font-bold text-sm transition-colors" placeholder="Minhphat" />
+                        <input value={adminUser} onChange={(e) => setAdminUser(e.target.value)} required className="w-full p-3.5 bg-slate-950/80 border border-slate-800 focus:border-indigo-500 rounded-xl outline-none text-white font-bold text-sm transition-colors" placeholder="Tên đăng nhập" />
                     </div>
                     <div>
                         <label className="block text-[10px] font-extrabold text-slate-400 mb-2 uppercase tracking-wider">Mật mã bảo mật</label>
-                        <input name="p" type="password" required className="w-full p-3.5 bg-slate-950/80 border border-slate-800 focus:border-indigo-500 rounded-xl outline-none text-white font-bold text-sm tracking-widest transition-colors" placeholder="••••••••" />
+                        <input type="password" value={adminPass} onChange={(e) => setAdminPass(e.target.value)} required className="w-full p-3.5 bg-slate-950/80 border border-slate-800 focus:border-indigo-500 rounded-xl outline-none text-white font-bold text-sm tracking-widest transition-colors" placeholder="••••••••" />
                     </div>
                     <button className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3.5 rounded-xl font-bold uppercase tracking-wider text-xs shadow-lg shadow-indigo-600/20 hover:opacity-90 transition-opacity mt-4">Khởi Chạy Thiết Bị</button>
                 </form>
