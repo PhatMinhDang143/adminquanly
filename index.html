@@ -6,12 +6,9 @@
 <title>HỆ THỐNG QUẢN TRỊ ADMIN - HIGH TECH PRO</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
-
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-
 <script src="https://unpkg.com/@babel/standalone@7.23.9/babel.min.js"></script>
 
 <style>
@@ -27,8 +24,8 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: #030712; color:
 .material-icons { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; }
 </style>
 <script>
-// DÁN ĐƯỜNG LINK WEB APP MỚI NHẤT CỦA BẠN VÀO ĐÂY SAU KHI TRIỂN KHAI PHIÊN BẢN MỚI
-const API_URL = "https://script.google.com/macros/s/AKfycbyfElu762bowwlSMwB2opPi1YALh59HQk9gZ90E55n1en56mtb402oLT0590MBVN7ye/exec";
+// DÁN ĐƯỜNG LINK WEB APP VỪA TRIỂN KHAI LẠI VÀO ĐÂY
+const API_URL = "https://script.google.com/macros/s/AKfycbyVERzEfEK7t_Hp6PpWZYodTN-o7t4omX6W69p2Hn7URj71agiiKgvs_b954aiNMfn_/exec";
 </script>
 </head>
 <body>
@@ -45,7 +42,8 @@ const Icon = ({ name, size = 20, className = "" }) => {
         'users': 'people', 'shield': 'security', 'award': 'emoji_events', 'trending-up': 'trending_up',
         'file-plus': 'note_add', 'timer': 'timer', 'file-check': 'fact_check', 'upload-cloud': 'cloud_upload',
         'save': 'save', 'clock': 'schedule', 'zap': 'bolt', 'file-x': 'text_snippet', 'edit': 'edit',
-        'trash-2': 'delete_forever', 'user-plus': 'person_add', 'trash': 'delete', 'loader': 'hourglass_empty'
+        'trash-2': 'delete_forever', 'user-plus': 'person_add', 'trash': 'delete', 'loader': 'hourglass_empty',
+        'alert-triangle': 'warning', 'file': 'insert_drive_file'
     };
     const matName = iconMap[name] || 'help';
     return <span className={`material-icons ${className}`} style={{ fontSize: size }}>{matName}</span>;
@@ -63,16 +61,19 @@ const DashboardView = ({ data }) => (
                 <Icon name="file-text" size={120} className="absolute -right-8 -bottom-8 opacity-10 text-indigo-400" />
                 <h3 className="text-indigo-300 font-bold uppercase tracking-wider text-xs mb-2">Kho Đề Thi Hiện Có</h3>
                 <p className="text-6xl font-black text-white">{data.exams ? data.exams.length : 0}</p>
+                <div className="mt-4 text-xs text-indigo-400/80 flex items-center gap-1"><Icon name="check-circle" size={12}/> Đang hoạt động trên máy chủ</div>
             </div>
             <div className="bg-gradient-to-br from-cyan-950 via-cyan-900 to-slate-900 p-8 rounded-2xl border border-cyan-500/20 shadow-xl relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
                 <Icon name="users" size={120} className="absolute -right-8 -bottom-8 opacity-10 text-cyan-400" />
                 <h3 className="text-cyan-300 font-bold uppercase tracking-wider text-xs mb-2">Học Viên Hệ Thống</h3>
                 <p className="text-6xl font-black text-white">{data.students ? Object.keys(data.students).length : 0}</p>
+                <div className="mt-4 text-xs text-cyan-400/80 flex items-center gap-1"><Icon name="shield" size={12}/> Tài khoản được mã hóa bảo mật</div>
             </div>
             <div className="bg-gradient-to-br from-emerald-950 via-emerald-900 to-slate-900 p-8 rounded-2xl border border-emerald-500/20 shadow-xl relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
                 <Icon name="award" size={120} className="absolute -right-8 -bottom-8 opacity-10 text-emerald-400" />
                 <h3 className="text-emerald-300 font-bold uppercase tracking-wider text-xs mb-2">Tổng Lượt Khảo Sát</h3>
                 <p className="text-6xl font-black text-white">{data.history ? data.history.length : 0}</p>
+                <div className="mt-4 text-xs text-emerald-400/80 flex items-center gap-1"><Icon name="trending-up" size={12}/> Điểm số ghi nhận tự động</div>
             </div>
         </div>
     </div>
@@ -82,29 +83,61 @@ const DashboardView = ({ data }) => (
 const ExamForm = ({ initialData, onSave, onCancel }) => {
     const [title, setTitle] = useState(initialData?.title || '');
     const [time, setTime] = useState(initialData?.duration || 90);
-    const [numP1, setNumP1] = useState(initialData?.num_p1 ?? 12);
+    const [examType, setExamType] = useState(initialData?.questions?.exam_type || 'fixed'); 
+    const [numP1, setNumP1] = useState(initialData?.questions?.num_p1 ?? 12);
+    const [numP2, setNumP2] = useState(initialData?.questions?.num_p2 ?? 4);
+    const [numP3, setNumP3] = useState(initialData?.questions?.num_p3 ?? 6);
+    const [startTime, setStartTime] = useState(initialData?.questions?.start_time || '');
+    const [endTime, setEndTime] = useState(initialData?.questions?.end_time || '');
+    
+    // Lưu link cũ nếu có
+    const [fileLink, setFileLink] = useState(initialData?.questions?.file_link || '');
+    const [explainLink, setExplainLink] = useState(initialData?.questions?.explain_link || '');
+    
+    // Trạng thái lưu file mới tải lên
+    const [uploadFile, setUploadFile] = useState(null);
+
+    const [ansP1, setAnsP1] = useState(initialData?.answers?.p1 || {});
+    const [ansP2, setAnsP2] = useState(initialData?.answers?.p2 || {});
+    const [ansP3, setAnsP3] = useState(initialData?.answers?.p3 || {});
     const [isSaving, setIsSaving] = useState(false);
-    const [ansP1, setAnsP1] = useState(initialData?.questions ? Object.keys(initialData.questions).reduce((acc, cur) => ({...acc, [cur]: initialData.answers[cur] || ''}), {}) : {});
+
+    useEffect(() => {
+        if (examType === 'fixed') { setNumP1(12); setNumP2(4); setNumP3(6); }
+    }, [examType]);
+
+    // Xử lý khi chọn file PDF
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if(file.type !== "application/pdf") { alert("Vui lòng chỉ chọn file PDF!"); return; }
+            if(file.size > 5 * 1024 * 1024) { alert("File quá lớn! Vui lòng chọn file dưới 5MB để tải lên mượt mà."); return; }
+            
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const base64Data = ev.target.result.split(',')[1];
+                setUploadFile({ name: file.name, mimeType: file.type, base64: base64Data });
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if(!title.trim()) { alert("Vui lòng nhập tiêu đề!"); return; }
 
         setIsSaving(true);
-        const mockQuestions = {};
-        const finalAnswers = {};
-        
-        for(let i = 1; i <= numP1; i++) {
-            mockQuestions[i] = { text: `Câu hỏi số ${i}: Lựa chọn đáp án đúng nhất.`, optA: "Đáp án A", optB: "Đáp án B", optC: "Đáp án C", optD: "Đáp án D" };
-            finalAnswers[i] = ansP1[i] || '';
-        }
-
         const payload = {
             id: initialData?.id || 'ex_' + Date.now(),
             title: title,
             duration: parseInt(time),
-            questions: mockQuestions,
-            answers: finalAnswers
+            questions: { 
+                exam_type: examType, num_p1: numP1, num_p2: numP2, num_p3: numP3,
+                start_time: startTime, end_time: endTime,
+                file_link: fileLink, explain_link: explainLink
+            },
+            answers: { p1: ansP1, p2: ansP2, p3: ansP3 },
+            fileData: uploadFile // Gửi file mã hóa base64 lên server
         };
 
         await onSave(payload);
@@ -117,8 +150,9 @@ const ExamForm = ({ initialData, onSave, onCancel }) => {
                 <div>
                     <h2 className="text-2xl font-bold text-white flex items-center gap-2">
                         <Icon name="file-plus" className="text-indigo-500" />
-                        {initialData ? 'Cập Nhật Cấu Trúc Đề Thi' : 'Thiết Lập Đề Thi Mới'}
+                        {initialData ? 'Cập Nhật Cấu Trúc Đề Thi' : 'Thiết Lập Đề Thi Mới Trên Google Sheets'}
                     </h2>
+                    <p className="text-xs text-slate-400 mt-1">Hệ thống sẽ tự động lưu PDF vào Google Drive của bạn.</p>
                 </div>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -127,45 +161,141 @@ const ExamForm = ({ initialData, onSave, onCancel }) => {
                         <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-widest border-b border-slate-800 pb-2">1. Thông tin chung</h3>
                         <div>
                             <label className="block text-slate-400 text-xs font-semibold mb-2 uppercase">Tiêu đề đề thi</label>
-                            <input value={title} onChange={e => setTitle(e.target.value)} required className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl text-white outline-none focus:border-indigo-500 glow-input transition-all font-medium text-sm" />
+                            <input value={title} onChange={e => setTitle(e.target.value)} required className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl text-white outline-none focus:border-indigo-500 glow-input transition-all font-medium text-sm" placeholder="VD: Đề kiểm tra học kỳ..." />
                         </div>
                         <div>
                             <label className="block text-slate-400 text-xs font-semibold mb-2 uppercase">Thời gian làm bài (Phút)</label>
                             <input type="number" value={time} onChange={e => setTime(e.target.value)} required className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl text-white outline-none focus:border-indigo-500 glow-input transition-all font-medium text-sm" />
                         </div>
+                    </div>
+                    
+                    <div className="bg-slate-900/40 p-5 rounded-xl border border-slate-800/80 space-y-4">
+                        <h3 className="text-xs font-bold text-cyan-400 uppercase tracking-widest border-b border-slate-800 pb-2">2. Lựa chọn hình thức</h3>
                         <div>
-                            <label className="block text-slate-400 text-xs font-semibold mb-2 uppercase">Số lượng câu hỏi</label>
-                            <input type="number" min="1" max="100" value={numP1} onChange={e => setNumP1(parseInt(e.target.value) || 1)} className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl text-white outline-none focus:border-cyan-500 text-sm font-bold" />
+                            <label className="block text-slate-400 text-xs font-semibold mb-2 uppercase">Loại cấu trúc đề</label>
+                            <select value={examType} onChange={(e) => setExamType(e.target.value)} className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl text-white outline-none focus:border-cyan-500 glow-input transition-all font-medium text-sm cursor-pointer">
+                                <option value="fixed">Mặc định Bộ GD&ĐT (12-4-6)</option>
+                                <option value="custom">Tùy biến nâng cao (Tự nhập số câu)</option>
+                            </select>
+                        </div>
+                        {examType === 'custom' && (
+                            <div className="space-y-3 pt-2 bg-slate-950/50 p-3 rounded-lg border border-slate-800 border-dashed">
+                                <div>
+                                    <label className="block text-slate-400 text-[11px] font-semibold mb-1">Số câu Trắc Nghiệm (Phần I)</label>
+                                    <input type="number" min="0" max="100" value={numP1} onChange={e => setNumP1(parseInt(e.target.value) || 0)} className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-white outline-none focus:border-cyan-500 text-sm font-bold" />
+                                </div>
+                                <div>
+                                    <label className="block text-slate-400 text-[11px] font-semibold mb-1">Số câu Đúng/Sai (Phần II)</label>
+                                    <input type="number" min="0" max="50" value={numP2} onChange={e => setNumP2(parseInt(e.target.value) || 0)} className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-white outline-none focus:border-cyan-500 text-sm font-bold" />
+                                </div>
+                                <div>
+                                    <label className="block text-slate-400 text-[11px] font-semibold mb-1">Số câu Điền Ngắn (Phần III)</label>
+                                    <input type="number" min="0" max="50" value={numP3} onChange={e => setNumP3(parseInt(e.target.value) || 0)} className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-white outline-none focus:border-cyan-500 text-sm font-bold" />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="bg-slate-900/40 p-5 rounded-xl border border-slate-800/80 space-y-4">
+                        <h3 className="text-xs font-bold text-amber-400 uppercase tracking-widest border-b border-slate-800 pb-2 flex items-center gap-1.5"><Icon name="timer" size={14} className="text-amber-400" /> 3. Phòng thi Giờ G & Tài liệu</h3>
+                        <div>
+                            <label className="block text-slate-400 text-[11px] font-semibold mb-1.5 uppercase">Giờ mở đề (Bắt đầu)</label>
+                            <input type="datetime-local" value={startTime} onChange={e => setStartTime(e.target.value)} className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-white outline-none focus:border-amber-500 text-xs font-bold" />
+                        </div>
+                        <div>
+                            <label className="block text-slate-400 text-[11px] font-semibold mb-1.5 uppercase">Giờ đóng đề (Kết thúc)</label>
+                            <input type="datetime-local" value={endTime} onChange={e => setEndTime(e.target.value)} className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-white outline-none focus:border-amber-500 text-xs font-bold" />
+                        </div>
+                        
+                        {/* Khu vực Upload PDF kiểu cũ */}
+                        <div className="pt-3 border-t border-slate-800/80 border-dashed">
+                            <label className="block text-purple-400 font-bold text-xs mb-2 uppercase flex items-center gap-1"><Icon name="upload-cloud" size={13}/> Tải file PDF Đề Thi Lên</label>
+                            <input type="file" accept=".pdf" onChange={handleFileChange} className="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-purple-600 file:text-white hover:file:bg-purple-500 cursor-pointer"/>
+                            {uploadFile && <p className="text-[10px] text-emerald-400 mt-2 font-semibold">Đã chuẩn bị file: {uploadFile.name}</p>}
+                            {fileLink && !uploadFile && <p className="text-[10px] text-slate-500 mt-2">Đề thi hiện tại: <a href={fileLink} target="_blank" className="text-indigo-400 underline">Xem file PDF đã lưu</a></p>}
+                        </div>
+                        
+                        <div>
+                            <label className="block text-emerald-400 font-bold text-xs mb-2 uppercase flex items-center gap-1"><Icon name="file-check" size={13}/> Link Drive (Lời giải nếu có)</label>
+                            <input value={explainLink} onChange={e => setExplainLink(e.target.value)} className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white outline-none focus:border-emerald-500 text-xs" placeholder="Dán link lời giải..." />
                         </div>
                     </div>
                 </div>
 
-                <div className="lg:col-span-8 space-y-6 h-[500px] overflow-y-auto custom-scroll pr-2">
-                    <div className="bg-indigo-600/5 p-5 rounded-2xl border border-indigo-500/10">
-                        <h3 className="text-indigo-400 font-bold mb-4 uppercase text-xs tracking-wider flex justify-between items-center">
-                            <span>Bảng Nhập Đáp Án Đầu Vào</span>
-                            <span className="bg-indigo-500/20 px-2 py-0.5 rounded text-[10px]">{numP1} câu</span>
-                        </h3>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                            {[...Array(parseInt(numP1) || 0)].map((_, i) => (
-                                <div key={i} className="flex items-center gap-2 bg-slate-950 p-2 rounded-xl border border-slate-850">
-                                    <span className="text-xs font-bold text-slate-500 w-8 text-center">C.{i+1}</span>
-                                    <select value={ansP1[i+1] || ''} onChange={e => setAnsP1({...ansP1, [i+1]: e.target.value})} className="flex-1 bg-slate-900 text-white text-xs font-bold p-1.5 rounded border border-slate-800 outline-none cursor-pointer focus:border-indigo-500">
-                                        <option value="">Chọn</option>
-                                        <option value="A">A</option><option value="B">B</option>
-                                        <option value="C">C</option><option value="D">D</option>
-                                    </select>
-                                </div>
-                            ))}
+                <div className="lg:col-span-8 space-y-6 h-[720px] overflow-y-auto custom-scroll pr-2">
+                    {/* PHẦN I */}
+                    {numP1 > 0 && (
+                        <div className="bg-indigo-600/5 p-5 rounded-2xl border border-indigo-500/10">
+                            <h3 className="text-indigo-400 font-bold mb-4 uppercase text-xs tracking-wider flex justify-between items-center">
+                                <span>Phần I: Trắc Nghiệm Nhiều Lựa Chọn</span>
+                                <span className="bg-indigo-500/20 px-2 py-0.5 rounded text-[10px]">{numP1} câu</span>
+                            </h3>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                {[...Array(parseInt(numP1) || 0)].map((_, i) => (
+                                    <div key={i} className="flex items-center gap-2 bg-slate-950 p-2 rounded-xl border border-slate-850">
+                                        <span className="text-xs font-bold text-slate-500 w-8 text-center">C.{i+1}</span>
+                                        <select value={ansP1[i+1] || ''} onChange={e => setAnsP1({...ansP1, [i+1]: e.target.value})} className="flex-1 bg-slate-900 text-white text-xs font-bold p-1.5 rounded border border-slate-800 outline-none cursor-pointer focus:border-indigo-500">
+                                            <option value="">Chọn</option>
+                                            <option value="A">A</option><option value="B">B</option>
+                                            <option value="C">C</option><option value="D">D</option>
+                                        </select>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                    </div>
+                    )}
+                    {/* PHẦN II */}
+                    {numP2 > 0 && (
+                        <div className="bg-cyan-600/5 p-5 rounded-2xl border border-cyan-500/10">
+                            <h3 className="text-cyan-400 font-bold mb-4 uppercase text-xs tracking-wider flex justify-between items-center">
+                                <span>Phần II: Trắc Nghiệm Đúng / Sai</span>
+                                <span className="bg-cyan-500/20 px-2 py-0.5 rounded text-[10px]">{numP2} câu</span>
+                            </h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {[...Array(parseInt(numP2) || 0)].map((_, i) => (
+                                    <div key={i} className="bg-slate-950 p-4 rounded-xl border border-slate-850 relative">
+                                        <span className="text-xs font-bold text-slate-400 border-b border-slate-800 pb-2 mb-3 block">Câu hỏi {i+1}</span>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {['a','b','c','d'].map(sub => (
+                                                <div key={sub} className="flex items-center gap-2 bg-slate-900 p-2 rounded-lg border border-slate-800">
+                                                    <span className="text-xs font-bold uppercase w-4 text-slate-500">{sub}</span>
+                                                    <select value={ansP2[i+1]?.[sub] || ''} onChange={e => setAnsP2({...ansP2, [i+1]: {...(ansP2[i+1]||{}), [sub]: e.target.value}})} className="flex-1 bg-slate-950 text-white text-xs font-bold p-1 rounded outline-none cursor-pointer focus:border-cyan-500">
+                                                        <option value="">-</option>
+                                                        <option value="Đ">Đúng</option>
+                                                        <option value="S">Sai</option>
+                                                    </select>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    {/* PHẦN III */}
+                    {numP3 > 0 && (
+                        <div className="bg-purple-600/5 p-5 rounded-2xl border border-purple-500/10">
+                            <h3 className="text-purple-400 font-bold mb-4 uppercase text-xs tracking-wider flex justify-between items-center">
+                                <span>Phần III: Trả Lời Ngắn / Điền Số</span>
+                                <span className="bg-purple-500/20 px-2 py-0.5 rounded text-[10px]">{numP3} câu</span>
+                            </h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {[...Array(parseInt(numP3) || 0)].map((_, i) => (
+                                    <div key={i} className="flex items-center gap-2 bg-slate-950 p-2.5 rounded-xl border border-slate-850">
+                                        <span className="text-xs font-bold text-slate-500 w-10 text-center">C.{i+1}</span>
+                                        <input value={ansP3[i+1] || ''} onChange={e => setAnsP3({...ansP3, [i+1]: e.target.value})} className="flex-1 bg-slate-900 border border-slate-800 rounded px-2 py-1.5 text-white text-xs font-bold outline-none focus:border-purple-500 placeholder-slate-700" placeholder="Đáp số/Giá trị số" />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
             <div className="flex justify-end gap-3 mt-8 pt-5 border-t border-slate-800">
                 <button type="button" onClick={onCancel} className="px-6 py-2.5 rounded-xl font-bold uppercase text-xs tracking-wider bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors">Hủy Bỏ</button>
                 <button type="submit" disabled={isSaving} className="px-6 py-2.5 rounded-xl font-bold uppercase text-xs tracking-wider bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-600/20 hover:from-indigo-500 hover:to-purple-500 transition-all flex items-center gap-2 disabled:opacity-50">
                     {isSaving ? <Icon name="loader" size={16} className="animate-spin" /> : <Icon name="save" size={16}/>}
-                    {isSaving ? "Đang lưu..." : "Lưu Vào Google Sheet"}
+                    {isSaving ? "Đang xử lý PDF & Lưu..." : "Lưu Vào Google Sheet"}
                 </button>
             </div>
         </form>
@@ -180,33 +310,20 @@ const ExamsMain = ({ exams, onRefresh }) => {
     if (editing !== false) {
         return <ExamForm initialData={editing || null} onSave={async (payload) => {
             try {
-                const res = await fetch(`${API_URL}?action=save_exam`, { 
-                    method: 'POST', 
-                    body: JSON.stringify(payload) 
-                });
+                const res = await fetch(`${API_URL}?action=save_exam`, { method: 'POST', body: JSON.stringify(payload) });
                 const result = await res.json();
-                if(result.success) {
-                    alert('Đã lưu đề thi thành công lên Sheet!');
-                    setEditing(false); 
-                    onRefresh();
-                } else { alert("Lỗi từ Google: " + result.message); }
-            } catch (err) { alert('Lỗi mạng, kiểm tra lại API_URL: ' + err); }
+                if(result.success) { alert('Đã lưu đề thi & PDF thành công lên Sheet!'); setEditing(false); onRefresh(); }
+            } catch (err) { alert('Lỗi mạng: ' + err); }
         }} onCancel={() => setEditing(false)} />;
     }
 
     const deleteExam = async (id) => {
-        if(window.confirm('Cảnh báo: Hành động này sẽ xóa đề thi này trên Google Sheets. Tiếp tục?')) {
+        if(window.confirm('Cảnh báo nguy hiểm: Hành động này sẽ xóa vĩnh viễn đề thi này. Tiếp tục?')) {
             setIsDeleting(true);
             try {
-                const res = await fetch(`${API_URL}?action=delete_exam`, { 
-                    method: 'POST', 
-                    body: JSON.stringify({id}) 
-                });
+                const res = await fetch(`${API_URL}?action=delete_exam`, { method: 'POST', body: JSON.stringify({id}) });
                 const result = await res.json();
-                if(result.success) {
-                    alert('Đã xóa thành công!');
-                    onRefresh();
-                }
+                if(result.success) { alert('Đã xóa thành công!'); onRefresh(); }
             } catch (err) { alert('Lỗi khi xóa: ' + err); }
             setIsDeleting(false);
         }
@@ -217,28 +334,43 @@ const ExamsMain = ({ exams, onRefresh }) => {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-900/40 p-6 rounded-2xl border border-slate-800 gap-4">
                 <div>
                     <h2 className="text-2xl font-black text-white">Kho Cấu Trúc Đề</h2>
-                    <p className="text-xs text-slate-400 mt-0.5">Đồng bộ trực tiếp với danh sách bảng tính Tab [DeThi].</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Quản trị ma trận câu hỏi, phòng thi và đáp án thông minh đầu vào.</p>
                 </div>
                 <button onClick={() => setEditing(null)} className="px-5 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold uppercase text-xs tracking-widest flex items-center gap-2 shadow-lg shadow-indigo-600/10 transition-all"><Icon name="file-plus" size={16}/> Thêm Đề Thi Mới</button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {exams.map(ex => (
-                    <div key={ex.id} className="bg-slate-900/60 rounded-2xl p-6 border border-slate-800 hover:border-indigo-500/40 transition-all duration-300 shadow-xl flex flex-col justify-between group glow-card">
-                        <div>
-                            <h3 className="text-lg font-bold text-white group-hover:text-indigo-400 transition-colors line-clamp-2">{ex.title}</h3>
-                            <div className="flex flex-wrap gap-2 items-center text-xs font-semibold mb-6 mt-3">
-                                <span className="bg-slate-950 text-slate-400 px-3 py-1 rounded-lg border border-slate-800/80 flex items-center gap-1"><Icon name="clock" size={12}/> {ex.duration} Phút</span>
-                                <span className="bg-indigo-950/60 text-indigo-400 px-3 py-1 rounded-lg border border-indigo-900/30">Tổng: {Object.keys(ex.questions || {}).length} câu hỏi</span>
+                {exams.map(ex => {
+                    const cfg = ex.questions || {};
+                    return (
+                        <div key={ex.id} className="bg-slate-900/60 rounded-2xl p-6 border border-slate-800 hover:border-indigo-500/40 transition-all duration-300 shadow-xl flex flex-col justify-between group glow-card">
+                            <div>
+                                <h3 className="text-lg font-bold text-white group-hover:text-indigo-400 transition-colors line-clamp-2">{ex.title}</h3>
+                                <div className="flex flex-wrap gap-2 items-center text-xs font-semibold mb-6 mt-3">
+                                    <span className="bg-slate-950 text-slate-400 px-3 py-1 rounded-lg border border-slate-800/80 flex items-center gap-1"><Icon name="clock" size={12}/> {ex.duration} Phút</span>
+                                    <span className="bg-indigo-950/60 text-indigo-400 px-3 py-1 rounded-lg border border-indigo-900/30">
+                                        {cfg.exam_type === 'fixed' ? 'Cấu trúc (12-4-6)' : `Tùy biến (${cfg.num_p1 || 0}-${cfg.num_p2 || 0}-${cfg.num_p3 || 0})`}
+                                    </span>
+                                    {cfg.file_link && (
+                                        <a href={cfg.file_link} target="_blank" className="bg-purple-950/40 text-purple-400 px-2.5 py-1 rounded-lg border border-purple-900/40 flex items-center gap-1 text-[11px] hover:bg-purple-900/60 transition-colors">
+                                            <Icon name="file" size={11} /> File PDF
+                                        </a>
+                                    )}
+                                    {cfg.start_time && (
+                                        <span className="bg-amber-950/40 text-amber-400 px-2.5 py-1 rounded-lg border border-amber-900/40 flex items-center gap-1 text-[11px]" title={`${cfg.start_time} -> ${cfg.end_time}`}>
+                                            <Icon name="zap" size={11} className="text-amber-400 animate-pulse" /> Giờ G
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="flex gap-2 border-t border-slate-850 pt-4">
+                                <button onClick={() => setEditing(ex)} className="flex-1 py-2.5 bg-slate-800 hover:bg-indigo-600 hover:text-white text-slate-300 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all"><Icon name="edit" size={14}/> Sửa Cấu Hình</button>
+                                <button onClick={() => deleteExam(ex.id)} disabled={isDeleting} className="w-11 h-11 flex items-center justify-center bg-rose-950 text-rose-400 border border-rose-900 hover:bg-rose-600 hover:text-white rounded-xl transition-all disabled:opacity-50"><Icon name="trash-2" size={16}/></button>
                             </div>
                         </div>
-                        <div className="flex gap-2 border-t border-slate-850 pt-4">
-                            <button onClick={() => setEditing(ex)} className="flex-1 py-2.5 bg-slate-800 hover:bg-indigo-600 hover:text-white text-slate-300 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all"><Icon name="edit" size={14}/> Sửa Đề</button>
-                            <button onClick={() => deleteExam(ex.id)} disabled={isDeleting} className="w-11 h-11 flex items-center justify-center bg-rose-950 text-rose-400 border border-rose-900 hover:bg-rose-600 hover:text-white rounded-xl transition-all disabled:opacity-50"><Icon name="trash-2" size={16}/></button>
-                        </div>
-                    </div>
-                ))}
+                    );
+                })}
                 {exams.length === 0 && (
-                    <div className="col-span-full text-slate-500 py-24 text-center border border-dashed border-slate-800 rounded-2xl bg-slate-950/20 font-medium">Không tìm thấy dữ liệu đề thi trên Sheet.</div>
+                    <div className="col-span-full text-slate-500 py-24 text-center border border-dashed border-slate-800 rounded-2xl bg-slate-950/20 font-medium">Hệ thống trống. Hãy tạo đề thi công nghệ đầu tiên của bạn.</div>
                 )}
             </div>
         </div>
@@ -250,37 +382,22 @@ const StudentsManager = ({ students, onRefresh }) => {
     const [list, setList] = useState([]);
     const [isSaving, setIsSaving] = useState(false);
 
-    useEffect(() => {
-        setList(Object.entries(students).map(([u, d]) => ({ username: u, ...d })));
-    }, [students]);
+    useEffect(() => { setList(Object.entries(students).map(([u, d]) => ({ username: u, ...d }))); }, [students]);
 
     const updateRow = (index, field, value) => {
-        const newList = [...list];
-        newList[index][field] = value;
-        setList(newList);
+        const newList = [...list]; newList[index][field] = value; setList(newList);
     };
 
     const handleSave = async () => {
         setIsSaving(true);
         const obj = {};
-        list.forEach(s => {
-            if (s.username && s.username.trim() !== '') {
-                obj[s.username.trim()] = { password: s.password, name: s.name, group: s.group };
-            }
-        });
-        
+        list.forEach(s => { if (s.username && s.username.trim() !== '') { obj[s.username.trim()] = { password: s.password, name: s.name, group: s.group }; } });
         try {
-            const response = await fetch(`${API_URL}?action=save_students`, { 
-                method: 'POST', 
-                body: JSON.stringify({students: obj})
-            });
+            const response = await fetch(`${API_URL}?action=save_students`, { method: 'POST', body: JSON.stringify({students: obj}) });
             const result = await response.json();
-            
-            if(result.success) {
-                alert('Đã cập nhật dữ liệu học sinh thành công lên Google Sheet!');
-                onRefresh();
-            } else { alert("Lỗi từ máy chủ: " + result.message); }
-        } catch (err) { alert('Đã xảy ra lỗi mạng, vui lòng kiểm tra lại Bước 1: ' + err.toString()); }
+            if(result.success) { alert('Đã cập nhật danh sách học viên!'); onRefresh(); } 
+            else { alert("Lỗi từ máy chủ: " + result.message); }
+        } catch (err) { alert('Lỗi mạng: ' + err.toString()); }
         setIsSaving(false);
     };
 
@@ -294,8 +411,7 @@ const StudentsManager = ({ students, onRefresh }) => {
                 <div className="flex gap-2 w-full sm:w-auto">
                     <button onClick={() => setList([{username:'', password:'', name:'', group:''}, ...list])} className="flex-1 sm:flex-none px-4 py-2.5 bg-cyan-950 text-cyan-400 hover:bg-cyan-900 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1 border border-cyan-900/50 transition-colors"><Icon name="user-plus" size={14}/> Thêm Ô</button>
                     <button onClick={handleSave} disabled={isSaving} className="flex-1 sm:flex-none px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-cyan-600 text-white rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1 shadow-md shadow-indigo-600/10 transition-colors disabled:opacity-50">
-                        {isSaving ? <Icon name="loader" size={14} className="animate-spin" /> : <Icon name="save" size={14}/>}
-                        {isSaving ? 'Đang lưu...' : 'Lưu Lên Sheet'}
+                        {isSaving ? <Icon name="loader" size={14} className="animate-spin" /> : <Icon name="save" size={14}/>} {isSaving ? 'Đang lưu...' : 'Lưu Đồng Bộ'}
                     </button>
                 </div>
             </div>
@@ -329,13 +445,26 @@ const StudentsManager = ({ students, onRefresh }) => {
 
 // --- 5. COMPONENT LỊCH SỬ THI ---
 const HistoryViewer = ({ history, onRefresh }) => {
+    const clearHistory = async () => {
+        if(window.confirm('CẢNH BÁO TỐI CAO: Hành động này sẽ dọn sạch toàn bộ dữ liệu bảng điểm và không thể phục hồi. Tiếp tục?')) {
+            try {
+                await fetch(`${API_URL}?action=clear_history`, { method: 'POST', body: JSON.stringify({}) });
+                alert('Đã dọn dẹp lịch sử thành công!');
+                onRefresh();
+            } catch (err) { alert('Lỗi mạng: ' + err); }
+        }
+    };
+
     return (
         <div className="cyber-panel rounded-2xl border border-slate-800 overflow-hidden flex flex-col h-full animate-fade-in">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-6 border-b border-slate-800 shrink-0 gap-4">
                 <div>
                     <h2 className="text-2xl font-black text-white">Nhật Ký Khảo Sát & Bảng Điểm</h2>
-                    <p className="text-xs text-slate-400 mt-0.5">Dữ liệu nộp bài của học sinh được lưu trữ tập trung tại Tab [LichSu].</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Dữ liệu kết quả chấm điểm tự động lưu từ học sinh.</p>
                 </div>
+                <button onClick={clearHistory} className="px-4 py-2.5 bg-rose-950 text-rose-400 border border-rose-900/50 hover:bg-rose-900 rounded-xl font-bold uppercase text-xs tracking-wider flex items-center justify-center gap-1 transition-all">
+                    <Icon name="trash" size={14}/> Xóa Bộ Nhớ Lịch Sử
+                </button>
             </div>
             <div className="overflow-x-auto custom-scroll flex-1 p-6">
                 <table className="w-full text-left border-collapse">
@@ -355,12 +484,15 @@ const HistoryViewer = ({ history, onRefresh }) => {
                                 <td className="p-4 text-xs text-slate-400">{h.submitted_at}</td>
                                 <td className="p-4 text-xs font-bold text-white">{h.name}</td>
                                 <td className="p-4 text-xs text-slate-300">{h.group}</td>
-                                <td className="p-4 text-xs text-indigo-400 font-semibold">{h.examTitle}</td>
+                                <td className="p-4 text-xs text-indigo-400 font-semibold max-w-xs truncate" title={h.examTitle}>{h.examTitle}</td>
                                 <td className="p-4 text-xl text-emerald-400 font-black">{h.score}</td>
                                 <td className="p-4 text-center">
-                                    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${h.cheat && h.cheat.includes('0 lần') ? 'bg-slate-950 text-slate-500' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
-                                        {h.cheat || 'Bình thường'}
-                                    </span>
+                                    <div className="flex justify-center">
+                                        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 w-max ${h.cheat && h.cheat.includes('0 lần') ? 'bg-slate-950 text-slate-500' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
+                                            <Icon name={h.cheat && h.cheat.includes('0 lần') ? "shield-check" : "alert-triangle"} size={12}/>
+                                            {h.cheat && h.cheat.includes('0 lần') ? 'Tuyệt đối an toàn' : h.cheat}
+                                        </span>
+                                    </div>
                                 </td>
                             </tr>
                         ))}
@@ -383,51 +515,38 @@ const App = () => {
         try {
             const res = await fetch(`${API_URL}?action=get_all`);
             const resData = await res.json();
-            if (resData && !resData.error) {
-                setData(resData);
-            } else if (resData.error) {
-                console.error("Lỗi App Script:", resData.message);
-            }
-        } catch (e) {
-            console.error("Lỗi đồng bộ Cloud Sheets:", e);
-        }
+            if (resData && !resData.error) { setData(resData); }
+        } catch (e) { console.error("Lỗi đồng bộ Cloud Sheets:", e); }
     };
 
-    useEffect(() => { 
-        fetchData(); 
-    }, []);
+    useEffect(() => { fetchData(); }, []);
 
     const handleLogin = (e) => {
         e.preventDefault();
-        if (e.target.u.value === 'Minhphat' && e.target.p.value === '12345') {
-            setView('dashboard');
-        } else {
-            alert("Truy cập thất bại! Sai thông tin Admin.");
-        }
+        if (e.target.u.value === 'Minhphat' && e.target.p.value === '12345') { setView('dashboard'); } 
+        else { alert("Truy cập thất bại! Sai thông tin Admin."); }
     };
 
     if (view === 'auth') return (
         <div className="h-screen flex items-center justify-center bg-[#010409] p-6 relative overflow-hidden">
             <div className="absolute top-[-20%] left-[-20%] w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none"></div>
             <div className="absolute bottom-[-20%] right-[-20%] w-[500px] h-[500px] bg-cyan-600/10 rounded-full blur-[120px] pointer-events-none"></div>
-            <div className="w-full max-w-md bg-slate-900/40 backdrop-blur-xl p-10 rounded-3xl shadow-2xl border border-slate-800/80 relative z-10">
+            <div className="w-full max-w-md bg-slate-900/40 backdrop-blur-xl p-10 rounded-3xl shadow-2xl border border-slate-800/80 relative z-10 animate-fade-in">
                 <div className="flex flex-col items-center mb-8">
-                    <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-4 rounded-2xl shadow-xl text-white mb-3">
-                        <Icon name="fingerprint" size={36}/>
-                    </div>
+                    <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-4 rounded-2xl shadow-xl text-white mb-3"><Icon name="fingerprint" size={36}/></div>
                     <h2 className="text-xl font-black text-white tracking-widest uppercase">Admin Terminal</h2>
-                    <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest mt-1">Đồng bộ dữ liệu Cloud Google Sheets</p>
+                    <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest mt-1">Hệ thống khảo sát trực tuyến pro</p>
                 </div>
                 <form onSubmit={handleLogin} className="space-y-4">
                     <div>
                         <label className="block text-[10px] font-extrabold text-slate-400 mb-2 uppercase tracking-wider">Mã định danh quản trị</label>
-                        <input name="u" required className="w-full p-3.5 bg-slate-950/80 border border-slate-800 focus:border-indigo-500 rounded-xl outline-none text-white font-bold text-sm transition-colors" placeholder="Tên đăng nhập" />
+                        <input name="u" required className="w-full p-3.5 bg-slate-950/80 border border-slate-800 focus:border-indigo-500 rounded-xl outline-none text-white font-bold text-sm transition-colors" placeholder="Minhphat" />
                     </div>
                     <div>
                         <label className="block text-[10px] font-extrabold text-slate-400 mb-2 uppercase tracking-wider">Mật mã bảo mật</label>
                         <input name="p" type="password" required className="w-full p-3.5 bg-slate-950/80 border border-slate-800 focus:border-indigo-500 rounded-xl outline-none text-white font-bold text-sm tracking-widest transition-colors" placeholder="••••••••" />
                     </div>
-                    <button className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3.5 rounded-xl font-bold uppercase tracking-wider text-xs shadow-lg shadow-indigo-600/20 hover:opacity-90 transition-opacity mt-4">Khởi Chạy Terminal</button>
+                    <button className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3.5 rounded-xl font-bold uppercase tracking-wider text-xs shadow-lg shadow-indigo-600/20 hover:opacity-90 transition-opacity mt-4">Khởi Chạy Thiết Bị</button>
                 </form>
             </div>
         </div>
@@ -440,7 +559,7 @@ const App = () => {
                     <div className="bg-gradient-to-tr from-indigo-500 to-cyan-500 p-2 rounded-xl text-white shadow-md"><Icon name="component" size={20}/></div>
                     <div>
                         <h1 className="font-black text-sm text-white tracking-widest uppercase leading-none">Minh Phat</h1>
-                        <p className="text-[9px] text-cyan-400 font-bold tracking-wider uppercase mt-1">Cloud Management</p>
+                        <p className="text-[9px] text-cyan-400 font-bold tracking-wider uppercase mt-1">Management Console</p>
                     </div>
                 </div>
                 <nav className="flex-1 p-4 space-y-1.5">
@@ -468,7 +587,7 @@ const App = () => {
                         {view === 'students' && <StudentsManager students={data.students} onRefresh={fetchData} />}
                         {view === 'history' && <HistoryViewer history={data.history} onRefresh={fetchData} />}
                     </div>
-                    <div className="mt-12 pt-6 border-t border-slate-900/60 text-center text-slate-600 text-[10px] font-bold uppercase tracking-widest">Hệ thống quản trị thuộc sở hữu của <strong className="text-slate-400">Đặng Minh Phát</strong></div>
+                    <div className="mt-12 pt-6 border-t border-slate-900/60 text-center text-slate-600 text-[10px] font-bold uppercase tracking-widest">Hệ thống quản trị tối cao thuộc quyền sở hữu của <strong className="text-slate-400">Đặng Minh Phát</strong></div>
                 </div>
             </main>
         </div>
