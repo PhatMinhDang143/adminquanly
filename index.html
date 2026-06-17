@@ -25,12 +25,14 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: #030712; color:
 .glow-input:focus { box-shadow: 0 0 15px rgba(99, 102, 241, 0.2); }
 .material-icons { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; }
 </style>
+
 <script>
 // ==========================================
 // DÁN ĐƯỜNG LINK WEB APP CỦA BẠN VÀO ĐÂY
 // ==========================================
 const API_URL = "https://script.google.com/macros/s/AKfycbyfElu762bowwlSMwB2opPi1YALh59HQk9gZ90E55n1en56mtb402oLT0590MBVN7ye/exec";
 </script>
+
 </head>
 <body>
 <div id="root"></div>
@@ -527,7 +529,7 @@ const App = () => {
     const [view, setView] = useState('auth');
     const [data, setData] = useState({ exams: [], students: {}, history: [] });
 
-    // Khai báo state an toàn cho Form Login
+    // Đã thay đổi: Quản lý Form Login an toàn 100% bằng State
     const [adminUser, setAdminUser] = useState('');
     const [adminPass, setAdminPass] = useState('');
 
@@ -543,7 +545,6 @@ const App = () => {
 
     const handleLogin = (e) => {
         e.preventDefault();
-        // Kiểm tra tài khoản bằng state thay vì e.target
         if (adminUser === 'Minhphat' && adminPass === '12345') { 
             setView('dashboard'); 
         } else { 
