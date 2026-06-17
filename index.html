@@ -27,8 +27,8 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: #030712; color:
 .material-icons { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; }
 </style>
 <script>
-// NHỚ DÁN LẠI ĐƯỜNG LINK WEB APP MỚI CỦA BẠN VÀO ĐÂY SAU KHI TRIỂN KHAI PHIÊN BẢN MỚI NHÉ
-const API_URL = "https://script.google.com/macros/s/AKfycbyVERzEfEK7t_Hp6PpWZYodTN-o7t4omX6W69p2Hn7URj71agiiKgvs_b954aiNMfn_/exec";
+// DÁN ĐƯỜNG LINK WEB APP MỚI NHẤT CỦA BẠN VÀO ĐÂY SAU KHI TRIỂN KHAI PHIÊN BẢN MỚI
+const API_URL = "https://script.google.com/macros/s/AKfycbyfElu762bowwlSMwB2opPi1YALh59HQk9gZ90E55n1en56mtb402oLT0590MBVN7ye/exec";
 </script>
 </head>
 <body>
@@ -180,16 +180,17 @@ const ExamsMain = ({ exams, onRefresh }) => {
     if (editing !== false) {
         return <ExamForm initialData={editing || null} onSave={async (payload) => {
             try {
-                const res = await fetch(`${API_URL}?action=save_exam`, { method: 'POST', body: JSON.stringify(payload) });
+                const res = await fetch(`${API_URL}?action=save_exam`, { 
+                    method: 'POST', 
+                    body: JSON.stringify(payload) 
+                });
                 const result = await res.json();
                 if(result.success) {
                     alert('Đã lưu đề thi thành công lên Sheet!');
                     setEditing(false); 
                     onRefresh();
-                } else {
-                    alert("Lỗi từ Google: " + result.message);
-                }
-            } catch (err) { alert('Lỗi đường truyền mạng: ' + err); }
+                } else { alert("Lỗi từ Google: " + result.message); }
+            } catch (err) { alert('Lỗi mạng, kiểm tra lại API_URL: ' + err); }
         }} onCancel={() => setEditing(false)} />;
     }
 
@@ -197,7 +198,10 @@ const ExamsMain = ({ exams, onRefresh }) => {
         if(window.confirm('Cảnh báo: Hành động này sẽ xóa đề thi này trên Google Sheets. Tiếp tục?')) {
             setIsDeleting(true);
             try {
-                const res = await fetch(`${API_URL}?action=delete_exam`, { method: 'POST', body: JSON.stringify({id}) });
+                const res = await fetch(`${API_URL}?action=delete_exam`, { 
+                    method: 'POST', 
+                    body: JSON.stringify({id}) 
+                });
                 const result = await res.json();
                 if(result.success) {
                     alert('Đã xóa thành công!');
@@ -275,12 +279,8 @@ const StudentsManager = ({ students, onRefresh }) => {
             if(result.success) {
                 alert('Đã cập nhật dữ liệu học sinh thành công lên Google Sheet!');
                 onRefresh();
-            } else {
-                alert("Lỗi từ máy chủ: " + result.message);
-            }
-        } catch (err) {
-            alert('Đã xảy ra lỗi mạng: ' + err.toString());
-        }
+            } else { alert("Lỗi từ máy chủ: " + result.message); }
+        } catch (err) { alert('Đã xảy ra lỗi mạng, vui lòng kiểm tra lại Bước 1: ' + err.toString()); }
         setIsSaving(false);
     };
 
@@ -383,8 +383,10 @@ const App = () => {
         try {
             const res = await fetch(`${API_URL}?action=get_all`);
             const resData = await res.json();
-            if (resData) {
+            if (resData && !resData.error) {
                 setData(resData);
+            } else if (resData.error) {
+                console.error("Lỗi App Script:", resData.message);
             }
         } catch (e) {
             console.error("Lỗi đồng bộ Cloud Sheets:", e);
